@@ -56,13 +56,12 @@ def DownSample(image):
             image_after_downsample[i, j] = image[i*2, j*2]
     return image_after_downsample
 
-def GaussianKernel(sigma):
+def GaussianKernel(sigma, kernel_shape):
     """
     返回一个指定模糊系数sigma的高斯核
     :param sigma: 高斯核参数sigma
     :return: 高斯核
     """
-    kernel_shape = int(round(6 * sigma) + 1)
     x0 = int(round(kernel_shape/2))
     y0 = int(round(kernel_shape/2))
     X = np.linspace(1, kernel_shape, kernel_shape)
@@ -90,7 +89,8 @@ def GenerateOctave(image, sigma_0, S):
     # cv.destroyAllWindows()
     for i in range(1,image_num_per_octave):
         sigma = (k ** (i)) * sigma_0
-        gaussian_kernel = GaussianKernel(sigma)
+        kernel_shape = int(round(6 * sigma) + 1)
+        gaussian_kernel = GaussianKernel(sigma, kernel_shape)
         one_octave[:, :, i] = conv2d(image, gaussian_kernel)   # cv.GaussianBlur函数也可以实现
         # one_octave[:, :, i] = MaxMinNorm(one_octave[:, :, i])
         # cv.imshow("test", one_octave[:, :, i])
@@ -110,7 +110,8 @@ def GaussianPyramid(image, sigma_0, S):
     gaussian_pyramid = []
 
     # 生成第一组octave的第一层
-    gaussian_kernel_0 = GaussianKernel(sigma_0)
+    kernel_shape = int(round(6 * sigma_0) + 1)
+    gaussian_kernel_0 = GaussianKernel(sigma_0, kernel_shape)
     gaussian_pyramid_0 = conv2d(image, gaussian_kernel_0)
 
     # 生成第一组octave
@@ -174,6 +175,7 @@ def DetectExtremePoint(DOG_pyramid):
                     temp_region[:, :, 2] = down_layer[i - 1:i + 2, j - 1:j + 2]
                     temp_coordinate = np.asarray([1,1,1])   # 指中心坐标
                     i_max, j_max, s_max = np.where(temp_region == np.max(temp_region))
+                    # print(np.where(temp_region == np.max(temp_region)))
                     i_min, j_min, s_min = np.where(temp_region == np.min(temp_region))
                     temp_max_coordinate = np.hstack((i_max, j_max, s_max))
                     temp_min_coordinate = np.hstack((i_min, j_min, s_min))
@@ -283,23 +285,24 @@ def RemoveUnstablePoint(DOG_pyramid, key_point):
 # 2.3 将检测到的特征点显示在图像上
 def DrawFeaturePoint(image, key_points):
     # key_point = [value, octave, i, j, s]
-    for i in range(len(key_points)):
-        key_point = key_points[i,:]
+    for k in range(len(key_points)):
+        key_point = key_points[k, :]
         octave = int(key_point[1])
         i = int(key_point[2]*pow(2, octave))
         j = int(key_point[3]*pow(2, octave))
         if i >= image.shape[1] or j >= image.shape[0]:
             continue
         cv.circle(image, center=(j,i), radius=2, color=(0, 255, 0))
-    cv.imshow('sift', image)
+    cv.imshow('feature_point', image)
     cv.waitKey()
     return image
 
-if __name__ == '__main__':
-    img = cv.imread('data/Lena.tif', 0)
-
-    S = 3        #S表示提取特征点的层数
-    sigma_0 = 1.6         #sigma为模糊尺度
-    DOG_pyramid = DoGPyramid(img, sigma_0, S)
-    key_points = DetectKeyPoint(DOG_pyramid)
-    DrawFeaturePoint(img, key_points)
+# if __name__ == '__main__':
+#     img = cv.imread('data/Lena.tif', 0)
+#
+#     S = 3        #S表示提取特征点的层数
+#     sigma_0 = 1.6         #sigma为模糊尺度
+#     DOG_pyramid = DoGPyramid(img, sigma_0, S)
+#     key_points = DetectKeyPoint(DOG_pyramid)
+#     DrawFeaturePoint(img, key_points)
+#     m =2
